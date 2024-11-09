@@ -4,18 +4,17 @@ import spacy
 import argparse
 import numpy as np
 import pandas as pd
-from collections import Counter
-from nltk.corpus import stopwords
-from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import TfidfVectorizer
 
 nlp = spacy.load('en_core_web_sm')
+pd.set_option('display.max_rows', None)
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', None)
+pd.set_option('display.max_colwidth', None)
 
 
 def laod_documents(filename):
     with open(filename, 'r') as f:
-        documents = f.readlines()
-        return documents
+        return [line.strip() for line in f.readlines()]
     
 def load_stopwords(filename):
     with open(filename, 'r') as f:
@@ -27,69 +26,73 @@ def load_lematization(file_path):
         lematization = json.load(f)
     return lematization
 
+def preprocess_document(document, stopwords, lemmatization_dict):
+    # Tokenización y normalización
+    tokens = document.lower().split()
+    # Eliminar stop words y lematizar
+    processed_tokens = [lemmatization_dict.get(token, token) for token in tokens if token not in stopwords]
+    return processed_tokens
 
-def process_text(plain_text, stopwords, lematization):
-    plain_text = ' '.join(plain_text)
-    doc = nlp(plain_text.lower())
-    all_terms = []
-    for token in doc:
-        if token.text not in stopwords and token.text.isalpha():
-            lemma = lematization.get(token.text, token.lemma_)
-            all_terms.append(lemma)
-    return all_terms
+def calculate_tf(document_tokens):
+    tf = {}
+    for term in document_tokens:
+        tf[term] = tf.get(term, 0) + 1
+    total_terms = len(document_tokens)
+    return {term: freq / total_terms for term, freq in tf.items()}
 
-
-def calculate_tf(tokens):
-    term_count = Counter(tokens)
-    tf = {term: count / len(tokens) for term, count in term_count.items()}
-    # tf = {term: round(count / len(tokens), 6) for term, count in term_count.items()}
-    return tf
-
-def calculate_idf(documents, all_terms):
+def calculate_idf(documents):
     idf = {}
     total_documents = len(documents)
-    for term in all_terms:
-        doc_freq = sum(1 for doc in documents if term in doc)
-        idf[term] = math.log(total_documents / (1 + doc_freq))  # Se usa 1 + doc_freq para evitar división por 0
-    return idf
+    for document in documents:
+        for term in set(document):
+            idf[term] = idf.get(term, 0) + 1
+    return {term: math.log(total_documents / freq) for term, freq in idf.items()}
 
-def calculate_tf_idf(tf, idf):
-    tf_idf = {}
-    for term, tf_value in tf.items():
-        if term in idf:
-            idf_value = idf[term]
-            tf_idf[term] = tf_value * idf_value
-        else:
-            tf_idf[term] = 0
-    return tf_idf
+def calculate_tfidf(tf, idf):
+    return {term: tf_value * idf.get(term, 0) for term, tf_value in tf.items()}
 
-def vectorize_tfidf(tf_idf):
-    # vectorizer = TfidfVectorizer()
-    # tfidf_matrix = vectorizer.fit_transform(document)
+def create_tfidf_matrix(tokens_matrix,idf_dict):
+    vocabulary = list(set(term for doc in tokens_matrix for term in doc))
+    tfidf_matrix = []
 
+    for token in tokens_matrix:
+        tf = calculate_tf(token)
+        tfidf = calculate_tfidf(tf, idf_dict)
+        tfidf_vector = [tfidf.get(term, 0) for term in vocabulary]
+        tfidf_matrix.append(tfidf_vector)
 
-    # terms = list(set(term for doc in tf_idf for term in doc))  # Todos los términos únicos
-    # matrix = np.zeros((len(tf_idf), len(terms)))
-    # for i, doc in enumerate(tf_idf):
-    #     for j, term in enumerate(terms):
-    #         matrix[i][j] = doc.get(term, 0)
-    return tf_idf
-
-def calculate_cosine_similarity(tfidf_matrix):
     return tfidf_matrix
-    # return cosine_similarity(tfidf_matrix)
 
 
-# def create_table(terms, tf, idf, tfidf,cosine_sim):
-#     df = pd.DataFrame({
-#         'Index': range(1, len(terms) + 1),
-#         'Term': terms,
-#         'TF': [tf.get(term, 0) for term in terms],
-#         'IDF': [idf.get(term, 0) for term in terms],
-#         'TF-IDF': [tfidf.get(term, 0) for term in terms],
-#         'Cosine Similarity': [cosine_sim[0][i] for i in range(len(cosine_sim[0]))]
-#     })
-#     return df
+def cosine_similarity(vec_a, vec_b):
+    dot_product = np.dot(vec_a, vec_b)
+
+    norm_a = np.linalg.norm(vec_a)
+    norm_b = np.linalg.norm(vec_b)
+    
+    return dot_product / (norm_a * norm_b)
+
+def calculate_cosine_similarities(tfidf_matrix):
+    num_documents = len(tfidf_matrix)
+    cosine_similarities = np.zeros((num_documents, num_documents))  # Matriz de similitud coseno
+    
+    for i in range(num_documents):
+        for j in range(i, num_documents):
+            similarity = cosine_similarity(tfidf_matrix[i], tfidf_matrix[j])
+            cosine_similarities[i][j] = similarity
+            cosine_similarities[j][i] = similarity
+    
+    return cosine_similarities
+
+def create_table(terms, tf, idf, tfidf):
+    df = pd.DataFrame({
+        'Index': range(1, len(terms) + 1),
+        'Term': terms,
+        'TF': [tf.get(term, 0) for term in terms],
+        'IDF': [idf.get(term, 0) for term in terms],
+        'TF-IDF': [tfidf.get(term, 0) for term in terms]
+    })
+    return df
 
 def main():
     parser = argparse.ArgumentParser(description="Sistema de recomendación basado en el contenido")
@@ -98,32 +101,33 @@ def main():
     parser.add_argument('lemmatization_file', help="Archivo de lematización de términos")
     args = parser.parse_args()
     
-    document = laod_documents(args.document_file)
-    print (document)
+    document_container = laod_documents(args.document_file)
     stopwords = load_stopwords(args.stopwords_file)
     lematization = load_lematization(args.lemmatization_file)
+
+    all_tokens_matrix = [preprocess_document(doc, stopwords, lematization) for doc in document_container]
     
-    all_terms = process_text(document, stopwords, lematization)
+    tf_list = [calculate_tf(token) for token in all_tokens_matrix]
+    idf_dict = calculate_idf(all_tokens_matrix)
+    tf_idf_dict = [calculate_tfidf(tf_doc, idf_dict) for tf_doc in tf_list]
 
-    tf = calculate_tf(all_terms)
-    idf = calculate_idf(document, all_terms)
-    tf_idf = calculate_tf_idf(tf, idf)
-    # print(tf_idf)
-    tfidf_matrix = vectorize_tfidf(tf_idf)
-    # print (len(tfidf_matrix))
-    # print (tfidf_matrix)
-    cosine_similarity = calculate_cosine_similarity(tfidf_matrix)
+    for i, (doc, tfidf) in enumerate(zip(all_tokens_matrix, tf_idf_dict), start=1):
+        terms = list(tfidf.keys())
+        tf = calculate_tf(doc)
+        tfidf_vals = calculate_tfidf(tf, idf_dict)
+        df = create_table(terms, tf, idf_dict, tfidf_vals)
+        print(f"Documento {i}")
+        print(df)
 
-    # df = create_table(all_terms, tf, idf, tf_idf, cosine_similarity)
+    tfidf_matrix = create_tfidf_matrix(all_tokens_matrix, idf_dict)
+    cosine_similarities = calculate_cosine_similarities(tfidf_matrix)
+    print("Matriz de Similitud Coseno:")
+    print(len(cosine_similarities))
 
-    # print (df)
-    # print(len(all_terms))
-    # print(len(document))
-    # print(len(tf))
-    # print(len(idf))
-    # print(len(tf_idf))
-    # print(len(cosine_similarity))
-    
+    cosine_similarities_df = pd.DataFrame(cosine_similarities, index=[f'Document {i+1}' for i in range(len(tfidf_matrix))], columns=[f'Document {i+1}' for i in range(len(tfidf_matrix))])
+
+    print(cosine_similarities_df)
+
 
 if __name__ == "__main__":
     main()

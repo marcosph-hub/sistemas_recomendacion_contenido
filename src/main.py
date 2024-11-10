@@ -1,15 +1,19 @@
+import os
 import math
 import json
 import spacy
 import argparse
 import numpy as np
 import pandas as pd
+from datetime import datetime
 
 nlp = spacy.load('en_core_web_sm')
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', None)
+
+
 
 
 def laod_documents(filename):
@@ -125,7 +129,7 @@ def main():
     print(len(cosine_similarities))
 
     cosine_similarities_df = pd.DataFrame(cosine_similarities, index=[f'Document {i+1}' for i in range(len(tfidf_matrix))], columns=[f'Document {i+1}' for i in range(len(tfidf_matrix))])
-
+    
     print(cosine_similarities_df)
 
 

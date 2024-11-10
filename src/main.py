@@ -1,11 +1,9 @@
 import math
 import json
-import spacy
 import argparse
 import numpy as np
 import pandas as pd
 
-nlp = spacy.load('en_core_web_sm')
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
@@ -26,10 +24,8 @@ def load_lematization(file_path):
         lematization = json.load(f)
     return lematization
 
-def preprocess_document(document, stopwords, lemmatization_dict):
-    # Tokenización y normalización
+def process_document(document, stopwords, lemmatization_dict):
     tokens = document.lower().split()
-    # Eliminar stop words y lematizar
     processed_tokens = [lemmatization_dict.get(token, token) for token in tokens if token not in stopwords]
     return processed_tokens
 
@@ -63,7 +59,6 @@ def create_tfidf_matrix(tokens_matrix,idf_dict):
 
     return tfidf_matrix
 
-
 def cosine_similarity(vec_a, vec_b):
     dot_product = np.dot(vec_a, vec_b)
 
@@ -74,7 +69,7 @@ def cosine_similarity(vec_a, vec_b):
 
 def calculate_cosine_similarities(tfidf_matrix):
     num_documents = len(tfidf_matrix)
-    cosine_similarities = np.zeros((num_documents, num_documents))  # Matriz de similitud coseno
+    cosine_similarities = np.zeros((num_documents, num_documents))  
     
     for i in range(num_documents):
         for j in range(i, num_documents):
@@ -105,9 +100,9 @@ def main():
     stopwords = load_stopwords(args.stopwords_file)
     lematization = load_lematization(args.lemmatization_file)
 
-    all_tokens_matrix = [preprocess_document(doc, stopwords, lematization) for doc in document_container]
+    all_tokens_matrix = [process_document(doc, stopwords, lematization) for doc in document_container]
     
-    tf_list = [calculate_tf(token) for token in all_tokens_matrix]
+    tf_list = [calculate_tf(doc_token) for doc_token in all_tokens_matrix]
     idf_dict = calculate_idf(all_tokens_matrix)
     tf_idf_dict = [calculate_tfidf(tf_doc, idf_dict) for tf_doc in tf_list]
 
@@ -122,12 +117,10 @@ def main():
     tfidf_matrix = create_tfidf_matrix(all_tokens_matrix, idf_dict)
     cosine_similarities = calculate_cosine_similarities(tfidf_matrix)
     print("Matriz de Similitud Coseno:")
-    print(len(cosine_similarities))
 
     cosine_similarities_df = pd.DataFrame(cosine_similarities, index=[f'Document {i+1}' for i in range(len(tfidf_matrix))], columns=[f'Document {i+1}' for i in range(len(tfidf_matrix))])
     
     print(cosine_similarities_df)
-
 
 if __name__ == "__main__":
     main()

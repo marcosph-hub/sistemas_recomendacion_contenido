@@ -1,19 +1,15 @@
-import os
 import math
 import json
 import spacy
 import argparse
 import numpy as np
 import pandas as pd
-from datetime import datetime
 
 nlp = spacy.load('en_core_web_sm')
 pd.set_option('display.max_rows', None)
 pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', None)
-
-
 
 
 def laod_documents(filename):

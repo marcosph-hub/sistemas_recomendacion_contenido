@@ -9,7 +9,6 @@ pd.set_option('display.max_columns', None)
 pd.set_option('display.width', None)
 pd.set_option('display.max_colwidth', None)
 
-
 def laod_documents(filename):
     with open(filename, 'r') as f:
         return [line.strip() for line in f.readlines()]

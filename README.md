@@ -145,3 +145,26 @@ Output:
 tf_list = [calculate_tf(token) for token in all_tokens_matrix]
 ````
 Esta línea utiliza una comprensión de lista para llamar a la función ``calculate_tf()`` en cada uno de los elementos de ``all_tokens_matrix()``, de manera que a la función que va a calcular el valor ``TF`` recibirá una lista de tokens para un documento determinado
+
+````python
+def calculate_tf(document_tokens):
+    tf = {}
+    for term in document_tokens:
+        tf[term] = tf.get(term, 0) + 1
+    total_terms = len(document_tokens)
+
+    return {term: freq / total_terms for term, freq in tf.items()}
+````
+
+Esta función `calculate_tf` devolverá una lista de diccionarios, para cada elemento de la lista habrá un diccionario **término** - **valor**(TF). Primero se creará un diccionario vacío ``tf`` que almacenará la frecuencia de aparición de cada término dentro del documento. El bucle recorre cada término ``term`` en la lista ``document_tokens``. Para cada término, se actualiza su frecuencia en el diccionario ``tf``:
+
+- ``tf.get(term, 0)``: Obtiene la frecuencia actual del término ``term`` en el diccionario ``tf``. Si el término no se ha encontrado previamente, se devuelve ``0``.
+
+- ``tf[term] = tf.get(term, 0) + 1``: Se incrementa la frecuencia del término en el diccionario tf.
+
+````python
+return {term: freq / total_terms for term, freq in tf.items()}
+````
+Lo que va a retornar es un diccionario en el que cada clave es un término y el valor es la frecuenciadel término dividida entre el total de términos.
+
+Output:

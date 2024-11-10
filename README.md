@@ -15,6 +15,12 @@
         - [Tokenización de los documentos](#tokenización-de-los-documentos)
     - [Cálculo de TF, IDF y TF-IDF](#cálculo-de-tf-idf-y-tf-idf)
         - [TF](#tf)
+        - [IDF](#idf)
+        - [TF-IDF](#tf-idf)
+    - [Similitud Coseno](#cálculo-de-la-similitud-coseno)
+        - [Creación de la Matriz TF-IDF](#creación-de-la-matriz-tf-idf)
+        - [Cálculo de la Similitud Coseno](#cálculo-de-la-similitud-coseno)
+
 
 
 
@@ -248,7 +254,7 @@ Output:
     }
 ]
 ````
-### Cálculo de la Similitud Coseno
+### Similitud Coseno
 #### Creación de la Matriz TF-IDF 
 Se requiere crear una matriz de los valores TF-IDF para poder hacer el calculo de la Similitud Coseno 
 ````python
@@ -326,3 +332,26 @@ Esta función calcula la matriz de similitudes coseno entre todos los documentos
 Despues de todo el calculo la función retorna  la matriz de similitudes coseno que contiene las similitudes entre todos los documentos.
 
 Output:
+````csv 
+             Document 1  Document 2  ...  Document 19  Document 20
+Document 1     1.000000    0.022620  ...     0.014243     0.036087
+Document 2     0.022620    1.000000  ...     0.016729     0.051006
+Document 3     0.000000    0.018088  ...     0.000000     0.067228
+Document 4     0.014353    0.001435  ...     0.051725     0.078128
+Document 5     0.000000    0.002008  ...     0.000000     0.001612
+Document 6     0.044568    0.020251  ...     0.015585     0.036612
+Document 7     0.005112    0.024872  ...     0.050580     0.024720
+Document 8     0.029460    0.073960  ...     0.044596     0.028311
+Document 9     0.080476    0.000000  ...     0.021573     0.027165
+Document 10    0.000000    0.037367  ...     0.000000     0.000674
+Document 11    0.044786    0.021273  ...     0.033122     0.001953
+Document 12    0.021487    0.088590  ...     0.054606     0.061606
+Document 13    0.045663    0.048041  ...     0.018353     0.081076
+Document 14    0.000000    0.024341  ...     0.022338     0.038627
+Document 15    0.000000    0.000711  ...     0.021054     0.027082
+Document 16    0.030384    0.019436  ...     0.022471     0.015427
+Document 17    0.004165    0.055825  ...     0.003081     0.004886
+Document 18    0.029164    0.000000  ...     0.005643     0.007106
+Document 19    0.014243    0.016729  ...     1.000000     0.066527
+Document 20    0.036087    0.051006  ...     0.066527     1.000000
+````

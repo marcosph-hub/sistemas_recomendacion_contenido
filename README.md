@@ -140,7 +140,7 @@ Output:
 ```
 
 ### Cálculo de TF, IDF y TF-IDF
-### TF
+#### TF
 ````python
 tf_list = [calculate_tf(token) for token in all_tokens_matrix]
 ````
@@ -166,5 +166,163 @@ Esta función `calculate_tf` devolverá una lista de diccionarios, para cada ele
 return {term: freq / total_terms for term, freq in tf.items()}
 ````
 Lo que va a retornar es un diccionario en el que cada clave es un término y el valor es la frecuenciadel término dividida entre el total de términos.
+
+Output:
+````python 
+[
+    {
+        'aromas': 0.05263157894736842, 
+        'include': 0.05263157894736842, 
+        'tropical': 0.05263157894736842, ...
+    },
+    {
+        'ripe': 0.058823529411764705, 
+        'fruity,': 0.058823529411764705, 
+        'wine': 0.058823529411764705, ...
+    },
+    { 
+        ... 
+    }
+]
+````
+#### IDF
+````python
+def calculate_idf(documents):
+    idf = {}
+    total_documents = len(documents)
+    for document in documents:
+        for term in set(document):
+            idf[term] = idf.get(term, 0) + 1
+    return {term: math.log(total_documents / freq) for term, freq in idf.items()}
+
+idf_dict = calculate_idf(all_tokens_matrix)
+````
+La función que calculará el valor `IDF` recibirá la lista de tokens de **cada** documento, cabe recordar que `all_tokens_matrix`contiene una posicion para cada documento con los tokens de dichos documentos devolverá un diccionario **término**-**valor**(IDF).
+Lo primero será crear el diccionario `idf = {}` vacío donde almacenar la frecuencia de aparición de cada término en los documentos y calacular el número total de docuentos en el conjunto de documentos `total_documents = len(documents)`. 
+
+El primer bucle `for` será para hacer iterar en cada documento que se convierte en un conjunto de palabras `for term in set(document)` para eliminar si hubiera algun caso repetido.
+
+``idf[term] = idf.get(term, 0) + 1``: Actualiza el diccionario ``idf`` para cada término encontrado en el documento. La función ``get(term, 0)`` obtiene el valor actual del término si ya existe en el diccionario, o ``0`` si no está presente. Luego, incrementa su frecuencia por ``1``.
+
+Después de recorrer todos los documentos y contar las frecuencias de los términos, el código utiliza una comprensión de diccionario para calcular el IDF para cada término:
+- ``math.log(total_documents / freq)``: Calcula el valor de IDF de un término
+Y ya una vez acabado el proceso de calculo  se devuelve un diccionario donde cada término es una clave y su correspondiente valor ``IDF``
+
+Output:
+`````python
+{
+    'palate': 1.3862943611198906, 
+    'expressive,': 2.995732273553991, 
+    'offer': 1.6094379124341003, 
+    'unripened': 2.995732273553991, 
+    'apple,': 2.995732273553991,
+    ...
+}
+`````
+#### TF-IDF
+
+`````python	
+def calculate_tfidf(tf, idf):
+    return {term: tf_value * idf.get(term, 0) for term, tf_value in tf.items()}
+`````
+
+La función ``calculate_tfidf()`` calcula el ``TF-IDF ``para cada término en un documento, usando los valores de ``TF`` y I``DF`` comentados anteriormente, el valor ``TF-IDF`` se calcula multiplicando el valor de ``TF`` por el valor de ``IDF``. Se itera sobre todos los términos de ``tf`` donde para cad uno se obtiene el valor de ``TF````tf_value`` su valor de ``IDF``desde el diccionario ``idf``, si el término no está en idf, se asigna un valor ``0```. El resultado es un diccionario donde cada clave es un término y su valor es TF-IDF
+
+Output:
+````python
+[
+    {
+        'aromas': 0.04202672085356692, 
+        'include': 0.12118868910494977, 
+        'tropical': 0.15767011966073635,
+        ...
+    },
+    {
+        'ripe': 0.11159529322858125, 
+        'fruity,': 0.17621954550317592, 
+        'wine': 0.08154672712469944,
+        ...
+    },
+    {
+        ...
+    }
+]
+````
+### Cálculo de la Similitud Coseno
+#### Creación de la Matriz TF-IDF 
+Se requiere crear una matriz de los valores TF-IDF para poder hacer el calculo de la Similitud Coseno 
+````python
+def create_tfidf_matrix(tokens_matrix,idf_dict):
+    vocabulary = list(set(term for doc in tokens_matrix for term in doc))
+    tfidf_matrix = []
+
+    for token in tokens_matrix:
+        tf = calculate_tf(token)
+        tfidf = calculate_tfidf(tf, idf_dict)
+        tfidf_vector = [tfidf.get(term, 0) for term in vocabulary]
+        tfidf_matrix.append(tfidf_vector)
+
+    return tfidf_matrix
+
+tfidf_matrix = create_tfidf_matrix(all_tokens_matrix, idf_dict)
+````
+La función ``create_tfidf_matrix()`` genera una matriz de ``TF-IDF`` a partir de una lista de documentos, donde cada documento es representado como una lista de términos (``tokens``). La matriz resultante tiene una fila por documento y una columna por cada término en el vocabulario global.
+- **Vocabulario Global**: a partir de la matriz de tokens calculada anteriormente se crea un vocabulario global, es decir, una lista de todos los términos únicos en el conjunto de documentos (sin duplicados).
+
+Output de `vocabulary`:
+````python 
+['tradition,', 'tomatoey', 'sunnier', 'tobacco', 'spice', 'cheesy', 'informal', 'fruity,', 'apple,', 'wood', 'blossom', 'flavor',...
+]
+````
+Con el vocabulario global a mano y para cada termino se calcula el `tf`y el ``tfidf`` con estos datos se constrye un vector que contiene los valores de ``TF-IDF`` de todos los términos en el vocabulario global. La función devuelve la matriz de ``TF-IDF`` (``tfidf_matrix``), donde cada fila representa un documento y cada columna representa un término del vocabulario global, con el valor de ``TF-IDF`` correspondiente a ese término en ese documento.
+
+Output de la matriz de ``TF-IDF``:
+````python
+[
+    [0, 0, 0.15767011966073635, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,...],
+    [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.17621954550317592,...], 
+    [0, 0, 0, 0, 0, 0, 0, 0.1664295707529995, 0, 0, 0, 0, 0, 0,...],
+    ...
+]
+````
+**Nota**: que hayan 0 en la matriz indica que el término correspondiente no está presente en el documento o tiene una frecuencia nula para ese término en particular.
+
+#### Cálculo de la Similitud Coseno
+
+Una vez ya se tenga la matriz TF-IDF se procede al calculo de la Similitud Coseno
+````python
+def cosine_similarity(vec_a, vec_b):
+    dot_product = np.dot(vec_a, vec_b)
+
+    norm_a = np.linalg.norm(vec_a)
+    norm_b = np.linalg.norm(vec_b)
+    
+    return dot_product / (norm_a * norm_b)
+````
+Esta función calcula la similitud coseno entre dos vectores vec_a y vec_b:
+- `dot_product = np.dot(vec_a, vec_b)`: Calcula el producto punto entre los dos vectores vec_a y vec_b. El producto punto es una operación matemática que suma los productos de los elementos correspondientes de los dos vectores.
+- ``norm_a = np.linalg.norm(vec_a) y norm_b = np.linalg.norm(vec_b)``: Calcula los modulos de ambos vectores
+- `return dot_product / (norm_a * norm_b):`La similitud coseno se calcula dividiendo el producto punto entre los productos de las normas de los vectores. 
+
+````python
+def calculate_cosine_similarities(tfidf_matrix):
+    num_documents = len(tfidf_matrix)
+    cosine_similarities = np.zeros((num_documents, num_documents))  
+    
+    for i in range(num_documents):
+        for j in range(i, num_documents):
+            similarity = cosine_similarity(tfidf_matrix[i], tfidf_matrix[j])
+            cosine_similarities[i][j] = similarity
+            cosine_similarities[j][i] = similarity
+    
+    return cosine_similarities
+````
+Esta función calcula la matriz de similitudes coseno entre todos los documentos a partir de la matriz de ``TF-IDF``. La matriz de similitudes coseno es una matriz cuadrada donde cada celda (i, j) contiene la similitud coseno entre el documento i y el documento j.
+
+- ``cosine_similarities = np.zeros((num_documents, num_documents))``: Crea una matriz de similitudes coseno inicializada con ceros. Esta matriz es de tamaño (num_documents, num_documents), donde cada celda almacenará la similitud coseno entre dos documentos.
+- `similarity = cosine_similarity(tfidf_matrix[i], tfidf_matrix[j])`: Llama a la función cosine_similarity para calcular la similitud entre los documentos i y j.
+- `cosine_similarities[i][j] = similarity` y `cosine_similarities[j][i] = similarity:` Asigna el valor de la similitud calculada en la matriz de similitudes. Se asigna en las posiciones (i, j) y (j, i) para asegurarse de que la matriz sea simétrica.
+
+Despues de todo el calculo la función retorna  la matriz de similitudes coseno que contiene las similitudes entre todos los documentos.
 
 Output:
